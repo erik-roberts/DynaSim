@@ -23,6 +23,7 @@ function handles = dsPlot(data,varargin)
 %     'figheight'       : outerposition height
 %     'figx'            : outerposition x
 %     'figy'            : outerposition y
+%     'fontSize'        : set font size for figure
 %     'visible'         : {'on','off'}
 %     'lock_gca'        : Plots within currently active axis (gca); doesn't
 %                         open new figures or subplots.
@@ -176,6 +177,7 @@ options=dsCheckOptions(varargin,{...
   'figheight',[1],[],...
   'figx',[0],[],...
   'figy',[0],[],...
+  'fontSize',[14],[],...
   'visible','on',{'on','off'},...
   'lock_gca',[false],[false, true],...
   'fig_handle',[],[],...
@@ -257,7 +259,7 @@ if any(strcmp(fields, 'varied'))
       handles = dsPlot(data(figure_data_index), varargin{:});
       for h = 1:length(handles)
         % figure(handles(h))
-        mtit(handles(h), vary_title, 'FontSize', 14, 'yoff', .2)
+        mtit(handles(h), vary_title, 'FontSize', fontSize, 'yoff', .2)
       end
 
     end % no_figures
@@ -943,6 +945,7 @@ for iFigset = 1:num_fig_sets
           if ylims(1)~=ylims(2)
             ylim(thisAxes, ylims);
           end
+          
           % add text
           if ~isempty(text_string)
             xmin=min(xlim); xmax=max(xlim);
