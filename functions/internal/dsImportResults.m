@@ -379,23 +379,28 @@ for iFn = 1:nResultFn
     
     % check if file exists
     if existBool
-      thisFileContents = load(thisFilePath,'result');
-      
       % get simInd
       simInd = simInds(iFile);
-      
-      % store result
-      if ~options.as_cell && isstruct(thisFileContents.result) && isfield(thisFileContents.result,'time')
-        % dynasim type structure to store as struct array
-        thisFnResults(simInd) = thisFileContents.result;
-      else
-        if iscell(thisFileContents.result) && length(thisFileContents.result) == 1
-          % if single cell result, store as cell array cell
+        
+      try
+        thisFileContents = load(thisFilePath,'result');
+        
+        % store result
+        if ~options.as_cell && isstruct(thisFileContents.result) && isfield(thisFileContents.result,'time')
+          % dynasim type structure to store as struct array
           thisFnResults(simInd) = thisFileContents.result;
         else
-          % if not single cell result, store inside cell array cell
-          thisFnResults(simInd) = {thisFileContents.result};
+          if iscell(thisFileContents.result) && length(thisFileContents.result) == 1
+            % if single cell result, store as cell array cell
+            thisFnResults(simInd) = thisFileContents.result;
+          else
+            % if not single cell result, store inside cell array cell
+            thisFnResults(simInd) = {thisFileContents.result};
+          end
         end
+      catch
+        wprintf('Error loading result: %s',thisFilePath);
+        thisFnResults{simInd} = [];
       end
     end
     
