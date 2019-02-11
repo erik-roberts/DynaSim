@@ -54,6 +54,7 @@ options=dsCheckOptions(varargin,{...
   'mex_dir_flag',1,{0,1},... % Flag to tell whether or not to search in mex_dir for pre-compiled solve files (solve*_mex*).
   'mex_dir',[],[],... % Directory to search for pre-compiled mex files. Can be relative to 'study_dir' or absolute path.
   'one_solve_file_flag',0,{0,1},...
+  'editSolveBeforeMex',0,{0,1},... % whether to pause before preparing mex file to permit editing of solve file
   'auto_gen_test_data_flag',0,{0,1},...
   'unit_test_flag',0,{0,1},...
   },false);
@@ -146,7 +147,9 @@ end
 if length(fname) > (namelengthmax-4) % subtract 4 to allow suffix '_mex'
   fname = fname(1:(namelengthmax-4));
   solve_file = fullfile(fpath,[fname fext]);
-  warning('Trimming solve_file name to be less than software "namelengthmax". New Name: %s', fname);
+  if options.verbose_flag
+    warning('Trimming solve_file name to be less than software "namelengthmax". New Name: %s', fname);
+  end
 end
 
 % create directory for solve_file if it doesn't exist
@@ -154,6 +157,7 @@ if ~isdir(fpath)
   if options.verbose_flag
     fprintf('Creating solver directory %s\n',fpath);
   end
+  
   mkdir(fpath);
 end
 cwd=pwd;
@@ -168,6 +172,7 @@ end
 % create solve_file if it doesn't exist
 if ~exist(solve_file,'file')
   keyvals = dsOptions2Keyval(options);
+  
   switch solver_type
     case 'dynasim'  % write DynaSim solver function (solve_ode.m)
       solve_file_m = dsWriteDynaSimSolver(model,keyvals{:},'filename',solve_file); % create DynaSim solver m-file
@@ -182,6 +187,7 @@ if ~exist(solve_file,'file')
                 % return @odefun with all substitutions. dsSimulate
                 % should be able to handle: dsSimulate(@odefun,'tspan',tspan,'ic',ic)
   end
+  
   solve_file = dsCompareSolveFiles(solve_file_m);               % First search in local solve folder...
   
   if options.mex_flag && options.mex_dir_flag
@@ -191,6 +197,13 @@ else
   if options.verbose_flag
     fprintf('Using previous solver file: %s\n',solve_file);
   end
+end
+
+if options.editSolveBeforeMex
+  disp('Edit solve file manually then enter `dbcont` to continue execution.')
+  fprintf('  solve file:%s \n', solve_file);
+  open(solve_file);
+  keyboard;
 end
 
 %% MEX Compilation
@@ -203,6 +216,7 @@ if options.mex_flag && ~strcmp(solver_type,'matlab_no_mex') % compile solver fun
   if options.one_solve_file_flag
     options.codegen_args = {0};
   end
+  
   solve_file = dsPrepareMEX(solve_file, options);
 end
 
@@ -211,5 +225,6 @@ if ~strcmp(cwd,fpath)
   if options.verbose_flag
     fprintf('Changing directory back to %s\n',cwd);
   end
+  
   cd(cwd);
 end
