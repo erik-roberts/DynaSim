@@ -315,7 +315,7 @@ for iMod = 1:size(modifications,1)
     MECH = tmp{2};
     
     % add MECH to param unless already present
-    if ~strcmp(MECH, fld(1:length(MECH)))
+    if length(fld) < length(MECH) || ~strcmp(MECH, fld(1:length(MECH)))
       fld = [MECH '_' fld];
     end
     
