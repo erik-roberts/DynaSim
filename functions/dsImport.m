@@ -129,7 +129,12 @@ if isstruct(srcS) && isfield(srcS,'study_dir')
   % "file" is a studyinfo structure.
   % retrieve most up-to-date studyinfo structure from studyinfo.mat file
   try
-    studyinfo = dsCheckStudyinfo(srcS.study_dir,'process_id',options.process_id, varargin{:});
+    if ~isempty(varargin) && isstruct(varargin{1})
+      varargin{1}.process_id = options.process_id;
+      studyinfo = dsCheckStudyinfo(srcS.study_dir, varargin{:});
+    else
+      studyinfo = dsCheckStudyinfo(srcS.study_dir,'process_id',options.process_id, varargin{:});
+    end
   catch
     error('Input source is not a recognized type.')
   end
@@ -184,10 +189,18 @@ if isstruct(srcS) && isfield(srcS,'study_dir')
       dataExist = cellfun(@exist,data_files)==2;
     end
   end
-  
+        
   if ~all(dataExist)
-    warnStr = strjoin(data_files(~dataExist), '\t\t\t');
-    warning('These data files not found... \n \t\t\t%s \n', warnStr);
+    simNums = regexp(data_files(~dataExist), 'sim(\d+)', 'tokens');
+    simNums = [simNums{:}];
+    simNums = [simNums{:}];
+    simNums = cellfun(@str2double, simNums);
+    simNums = sort(simNums);
+    
+%     warnStr = strjoin(data_files(~dataExist), '\t\t\t');
+%     warning('These data files not found... \n \t\t\t%s \n', warnStr);
+    warnStr = num2str(simNums);
+    warning('These sim files not found... \n \t\t\t%s \n', warnStr);
   end
 
   num_files = length(data_files);
@@ -214,7 +227,7 @@ if isstruct(srcS) && isfield(srcS,'study_dir')
     if thisDataExists
       dsVprintf(options, '  loading file (%g/%g): %s\n',iFile,num_files,data_files{iFile});
     else
-      dsVprintf(options, '    skipping missing file (%g/%g): %s\n',iFile,num_files,data_files{iFile});
+%       dsVprintf(options, '    skipping missing file (%g/%g): %s\n',iFile,num_files,data_files{iFile});
       continue
     end
     
