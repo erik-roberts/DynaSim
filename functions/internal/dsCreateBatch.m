@@ -680,7 +680,7 @@ end
     fprintf(fjob,'\t\t\ttry\n'); % inner try
     
     fprintf(fjob,'\t\t\t\tfprintf(''Result fn: %%s (%%i/%%i)\\n'', func2str(siminfo.result_functions{iFn}), iFn, nFn)\n');
-    fprintf(fjob,'\t\t\t\tdsAnalyze(data, siminfo.result_functions{iFn}, ''result_file'',siminfo.result_files{iFn}, ''save_results_flag'',1, siminfo.result_options{iFn}{:}, ''in_sim_flag'',1);\n');
+    fprintf(fjob,'\t\t\t\tdsAnalyze(data, siminfo.result_functions{iFn}, ''result_file'',siminfo.result_files{iFn}, ''save_results_flag'',1, siminfo.result_options{iFn}{:}, ''in_sim_flag'',1, options.global_analysis_options{:});\n');
     
     fprintf(fjob,'\t\t\tcatch fnErr\n'); % catch inner error
     fprintf(fjob,'\t\t\t\tdisplayError(fnErr);\n');
