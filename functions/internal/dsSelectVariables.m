@@ -70,12 +70,16 @@ for i=1:length(var_strings)
   if ~any(varstr=='*') && any(~cellfun(@isempty,regexp(labels,['_' varstr '$'])))
     varstr=['*_' varstr];
   end
+  
   % convert any population name into reg string to get all variables in pop
   if ~any(varstr=='*') && any(~cellfun(@isempty,regexp(labels,['^' varstr '_'])))
-    varstr=[varstr '_*'];
+%     varstr=[varstr '_*'];
+    varstr=[varstr '*'];
   end
+  
   % add period to get all matches
   varstr=strrep(varstr,'*','.*');
+  
   % find all matches
   matches=regexp(labels,['^' varstr '$'],'match');
   variables=cat(2,variables,matches{:});
@@ -84,8 +88,11 @@ end
 % if nargout>1
   pop_names={};
   for i=1:length(variables)
-    name=regexp(variables{i},'^([a-zA-Z0-9]+)_','tokens','once');
-    pop_names{end+1}=name{1};
+    name = regexp(variables{i},'^([a-zA-Z0-9]+)_','tokens','once');
+    
+    if ~isempty(name)
+      pop_names{end+1} = name{1};
+    end
   end
 % end
 
