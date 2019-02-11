@@ -260,6 +260,7 @@ options=dsCheckOptions(varargin,{...
   'dt',.01,[],...                 % time step used for fixed step DynaSim solvers
   'downsample_factor',1,[],...    % downsampling applied during simulation (only every downsample_factor-time point is stored in memory or written to disk)
   'reduce_function_calls_flag',1,{0,1},...   % whether to eliminate internal (anonymous) function calls
+  'use_nested_functions_flag',0,{0,1},...   % whether to use nested functions instead of internal (anonymous) function calls
   'save_parameters_flag',1,{0,1},...
   'random_seed','shuffle',[],...        % seed for random number generator (usage: rng(random_seed))
   'data_file','data.csv',[],... % name of data file if disk_flag=1
@@ -309,6 +310,7 @@ options=dsCheckOptions(varargin,{...
   'copy_run_file_flag',0,{0,1},... % copy mechanism files to study dir
   'copy_mech_files_flag',0,{0,1},... % copy mechanism files to study dir
   'independent_solve_file_flag',0,{0,1},... % solve file makes DS data structure without dsSimulate call
+  'editSolveBeforeMex',0,{0,1},... % whether to pause before preparing mex file to permit editing of solve file
   'userdata',[],[],...
   'debug_flag',0,{0,1},...
   'auto_gen_test_data_flag',0,{0,1},...
@@ -356,7 +358,7 @@ if options.parfor_flag && (strcmp(reportUI,'matlab') && feature('numCores') == 1
   varargin = modify_varargin(varargin, 'parfor_flag', options.parfor_flag);
 end
 
-if options.mex_flag && ~options.reduce_function_calls_flag
+if options.mex_flag && ~options.reduce_function_calls_flag && ~options.use_nested_functions_flag
   dsVprintf(options, 'Setting ''reduce_function_calls_flag'' to 1 for compatibility with ''mex_flag=1'' (coder does not support anonymous functions).\n');
   options.reduce_function_calls_flag = 1;
   varargin = modify_varargin(varargin, 'reduce_function_calls_flag', options.reduce_function_calls_flag);
@@ -461,6 +463,13 @@ if isempty(options.sim_id) % not in part of a batch sim
     options.save_parameters_flag = 1;
     varargin = modify_varargin(varargin, 'save_parameters_flag', options.save_parameters_flag);
     % TODO: this is a temp setting until iss_90 is fully implemented
+  end
+  
+  if options.independent_solve_file_flag && options.parfor_flag
+    % independent_solve_file_flag can't do parfor_flag
+    dsVprintf(options, 'Since independent_solve_file_flag==1, setting options.parfor_flag=0 \n')
+    options.parfor_flag = 0;
+    varargin = modify_varargin(varargin, 'parfor_flag', options.parfor_flag);
   end
 end % isempty(options.sim_id)
 
@@ -715,6 +724,7 @@ if options.parfor_flag % will return after nested dsSimulate calls
     disp('   Info for GNU Octave users: Do not expect any speed up by using DynaSim''s ''parfor_flag''. In GNU Octave, parfor loops currently default to regular for loops.');
   end
   
+  % * parfor loop here *
   parfor sim=1:length(modifications_set)
     data(sim) = dsSimulate(model, 'modifications', modifications_set{sim}, keyvals{:},...
         'random_seed',seeds{sim},...                                      % Use unique random seed for each sim if shuffle
@@ -826,20 +836,29 @@ if ~options.debug_flag
   try
     tryFn(nargout)
   catch err % error handling
-    if options.mex_flag && ~isempty(options.solve_file) && ~options.one_solve_file_flag
-      dsVprintf(options, 'Removing failed compiled solve file: %s\n',options.solve_file);
-
-      delete([options.solve_file '*']);
+    if ~strcmp(err.identifier, 'EMLRT:runTime:UserInterrupt') % make sure it's not a user interrupt (ctrl+c)
+      if options.mex_flag && ~isempty(options.solve_file) && ~options.one_solve_file_flag && strcmp(err.identifier, 'emlc:compilationError')
+        dsVprintf(options, 'Removing failed compiled solve file: %s\n',options.solve_file);
+        
+        [solveFileDir, solveFilename] = fileparts(options.solve_file);
+        solveFileNoExt = fullfile(solveFileDir, solveFilename);
+        
+        delete([solveFileNoExt '_mex*']);
+%         rmdir(fullfile(solveFileDir, 'codemex'), 's'); % this prevents codemex report
+      end
+      
+      displayError(err);
+      
+      % update studyinfo
+      if options.save_data_flag && ~options.one_solve_file_flag
+        studyinfo=dsUpdateStudy(studyinfo.study_dir,'process_id',sim_id,'status','failed','verbose_flag',options.verbose_flag);
+        data=studyinfo;
+      end
+      cleanup('error');
     end
-
-    displayError(err);
-
-    % update studyinfo
-    if options.save_data_flag && ~options.one_solve_file_flag
-      studyinfo=dsUpdateStudy(studyinfo.study_dir,'process_id',sim_id,'status','failed','verbose_flag',options.verbose_flag);
-      data=studyinfo;
-    end
-    cleanup('error');
+    
+    % return to cwd
+    cd(cwd);
 
     rethrow(err)
   end
@@ -972,13 +991,46 @@ end % in_parfor_loop_flag
         % (i.e., if is first simulation or a search space varying mechanism list)
         
         if sim==1 || ( ~isempty(modifications_set{1}) && is_varied_mech_list() )
+          
+          if ~isempty(options.solve_file)
+            [dirPath, filename] = fileparts(options.solve_file);
+            
+            % trim off '_mex' suffix for file exist checking
+            filename = regexprep(filename, '_mex$', '');
+            
+            solveFilePathName = fullfile(dirPath, filename);
+          else
+            solveFilePathName = [];
+          end
+          
           % prepare file that solves the model system
-          if isempty(options.solve_file) || (~exist(options.solve_file,'file') &&...
-              ~exist([options.solve_file '.mexa64'],'file') &&...
-              ~exist([options.solve_file '.mexa32'],'file') &&...
-              ~exist([options.solve_file '.mexmaci64'],'file'))
+          if isempty(options.solve_file) || ...
+              (~exist(options.solve_file,'file') && ~options.mex_flag) || ... % missing solve file
+              (options.mex_flag && (...
+              ~exist([solveFilePathName '_mex.mexa64'],'file') &&...
+              ~exist([solveFilePathName '_mex.mexa32'],'file') &&...
+              ~exist([solveFilePathName '_mex.mexmaci64'],'file')...
+            )) % missing mex file
 
             options.solve_file = dsGetSolveFile(model,studyinfo,options); % store name of solver file in options struct
+          else
+            % use existing solve_file
+            
+            if options.mex_flag
+              % check for mex
+              if ~exist([solveFilePathName '_mex.mexa64'],'file') &&...
+                  ~exist([solveFilePathName '_mex.mexa32'],'file') &&...
+                  ~exist([solveFilePathName '_mex.mexmaci64'],'file')
+                
+                % make mex
+                options.solve_file = dsGetSolveFile(model,studyinfo,options); % store name of solver file in options struct
+              elseif isempty( strfind(options.solve_file, '.mex') ) % solve_file set to non-mex file
+                % store mexfile path to options.solve_file
+                dirPathFiles = lscell(dirPath);
+                mexFilename = dirPathFiles{~cellfun(@isempty, regexp(dirPathFiles, [filename '_mex.mex']))};
+                options.solve_file = fullfile(dirPath, mexFilename);
+              end
+            end
           end
 
           % TODO: consider providing better support for studies that produce different m-files per sim (e.g., varying mechanism_list)
@@ -988,7 +1040,7 @@ end % in_parfor_loop_flag
             fprintf('Solving system using %s\n',options.solve_file);
           end
         else
-          % use previous solve_file
+          % use previous solve_file path
         end
         [fpath,fname,fext]=fileparts(options.solve_file);
 
