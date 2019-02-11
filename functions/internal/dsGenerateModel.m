@@ -357,7 +357,7 @@ for i=1:ncons
     name_map=cat(1,name_map,tmpmap);
 
     % link this mechanism to the target population
-    linker_pops=cat(2,linker_pops,repmat(target,[1 length(tmpmodel.linkers)]));
+    linker_pops=cat(2,linker_pops,repmat({target},[1 length(tmpmodel.linkers)]));
 
     % edit names of connection monitors specified in population equations
     % TODO: consider design changes to avoid specifying connection monitors
