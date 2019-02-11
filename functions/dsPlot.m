@@ -985,8 +985,8 @@ for iFigset = 1:num_fig_sets
             % list the parameter varied along the rows first
             str = [row_param_name '=' num2str(row_param_values(row)) ': '];
             
-            for iPop = 1:num_varied
-              fld = data(sim_index).varied{iPop};
+            for iVar = 1:num_varied
+              fld = data(sim_index).varied{iVar};
               
               if ~strcmp(fld,row_param_name)
                 val = data(sim_index).(fld);
@@ -1000,8 +1000,8 @@ for iFigset = 1:num_fig_sets
           else
             str='';
             
-            for iPop = 1:length(data.varied)
-              fld = data(sim_index).varied{iPop};
+            for iVar = 1:length(data(sim_index).varied)
+              fld = data(sim_index).varied{iVar};
               str = [str fld '=' num2str(data(sim_index).(fld)) ', '];
             end
           end
