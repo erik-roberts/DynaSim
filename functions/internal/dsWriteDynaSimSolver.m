@@ -146,12 +146,23 @@ if options.save_parameters_flag
     % standardize and expand modifications
     for iMod = 1:nMods
       mod_set{iMod} = dsStandardizeModifications(mod_set{iMod}, model.specification, varargin{:});
+      
+      % convert source->target to target<-source (to match model.namespaces convention)
+      obj = mod_set{iMod}{1};
+      if any(strfind(obj,'->'))
+        ind=strfind(obj,'->');
+        obj=[obj(ind(1)+2:end) '<-' obj(1:ind(1)-1)];
+        
+        % update modifications
+        mod_set{iMod}{1} = obj;
+      end
     end
+      % state: dot notation is converted. arrows are put backward.
 
     first_mod_set = mod_set{1};
     
-    % replace '->' with '_'
-    first_mod_set(:,1) = strrep(first_mod_set(:,1), '->', '_');
+    % replace '<-' with '_'
+    first_mod_set(:,1) = strrep(first_mod_set(:,1), '<-', '_');
 
     % add col of underscores
     first_mod_set = cat(2,first_mod_set(:,1), repmat({'_'},size(first_mod_set,1), 1), first_mod_set(:,2:end));
@@ -174,7 +185,7 @@ if options.save_parameters_flag
         
         % HACK
         if numNamespaceMatches == 0 && contains(first_mod_set{iParamMod,1}, '_')
-          % check reverse connection
+          % check reverse connection (source->target)
           flippedNamespace = first_mod_set{iParamMod,1};
           flippedNamespace = strsplit(flippedNamespace, '_');
           flippedNamespace = [flippedNamespace{2} '_' flippedNamespace{1}];
