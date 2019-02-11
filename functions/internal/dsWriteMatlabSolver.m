@@ -17,7 +17,7 @@ function solve_ode_filepath = dsWriteMatlabSolver(model,varargin)
 %     'modifications' : DynaSim modifications structure
 %     'reduce_function_calls_flag': whether to eliminate internal function
 %                                   calls {0 or 1} (default: 1)
-%     'coder_flag'    : whether to compile using coder instead of interpreting
+%     'mex_flag'    : whether to compile using coder instead of interpreting
 %                       Matlab (default: exist('codegen')==6 TODO is this correct?
 %                       what does this mean?)
 %     'downsample_factor': downsampling applied during simulation. Only every
@@ -160,7 +160,7 @@ if options.save_parameters_flag
       % add param with correct namespace(s) to mod_params
       if ~any(strcmp(model.namespaces(:,2), this_mod_param))
         % find correct namespace(s) based on param and pop
-        namespaceInd = logical( contains(model.namespaces(:,2), [first_mod_set{iParamMod,1} '_']) .* ...
+        namespaceInd = logical( startsWith(model.namespaces(:,2), [first_mod_set{iParamMod,1} '_']) .* ...
           endsWith(model.namespaces(:,2), first_mod_set{iParamMod,3}) );
 
         numNamespaceMatches = sum(namespaceInd);
@@ -173,7 +173,7 @@ if options.save_parameters_flag
           flippedNamespace = [flippedNamespace{2} '_' flippedNamespace{1}];
           
           % find correct namespace(s) based on param and pop
-          namespaceInd = logical( contains(model.namespaces(:,2), [flippedNamespace '_']) .* ...
+          namespaceInd = logical( startsWith(model.namespaces(:,2), [flippedNamespace '_']) .* ...
           endsWith(model.namespaces(:,2), first_mod_set{iParamMod,3}) );
 
           numNamespaceMatches = sum(namespaceInd);

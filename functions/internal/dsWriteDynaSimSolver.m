@@ -79,6 +79,7 @@ options=dsCheckOptions(varargin,{...
   'solver','rk4',{'euler','rk1','rk2','rk4','modified_euler','rungekutta','rk'},... % DynaSim solvers
   'disk_flag',0,{0,1},...            % whether to write to disk during simulation instead of storing in memory
   'reduce_function_calls_flag',1,{0,1},...   % whether to eliminate internal (anonymous) function calls
+  'use_nested_functions_flag',0,{0,1},...   % whether to use nested functions instead of internal (anonymous) function calls
   'save_parameters_flag',1,{0,1},...
   'filename',[],[],...         % name of solver file that integrates model
   'data_file','data.csv',[],... % name of data file if disk_flag=1
@@ -166,7 +167,7 @@ if options.save_parameters_flag
       % add param with correct namespace(s) to mod_params
       if ~any(strcmp(model.namespaces(:,2), this_mod_param))
         % find correct namespace(s) based on param and pop
-        namespaceInd = logical( contains(model.namespaces(:,2), [first_mod_set{iParamMod,1} '_']) .* ...
+        namespaceInd = logical( startsWith(model.namespaces(:,2), [first_mod_set{iParamMod,1} '_']) .* ...
           endsWith(model.namespaces(:,2), first_mod_set{iParamMod,3}) );
 
         numNamespaceMatches = sum(namespaceInd);
@@ -179,7 +180,7 @@ if options.save_parameters_flag
           flippedNamespace = [flippedNamespace{2} '_' flippedNamespace{1}];
           
           % find correct namespace(s) based on param and pop
-          namespaceInd = logical( contains(model.namespaces(:,2), [flippedNamespace '_']) .* ...
+          namespaceInd = logical( startsWith(model.namespaces(:,2), [flippedNamespace '_']) .* ...
           endsWith(model.namespaces(:,2), first_mod_set{iParamMod,3}) );
 
           numNamespaceMatches = sum(namespaceInd);
@@ -421,7 +422,7 @@ if ~isempty(model.fixed_variables)
 end
 
 % 2.5 evaluate function handles
-if ~isempty(model.functions) && options.reduce_function_calls_flag==0
+if ~isempty(model.functions) && ~options.reduce_function_calls_flag && ~options.use_nested_functions_flag
   fprintf(fid,'\n\n');
   fprintf(fid,'%% ------------------------------------------------------------\n');
   fprintf(fid,'%% Functions:\n');
@@ -660,9 +661,9 @@ if ~isempty(model.monitors)
       % preallocate monitors
       [~,~,pop_name] = dsGetPopSizeFromName(model,monitor_names{i});
       if options.save_parameters_flag
-        fprintf(fid,'  %s = zeros(nsamp,%s%s_Npop);\n',monitor_names{i},parameter_prefix,pop_name);
+        fprintf(fid,'    %s = zeros(nsamp,%s%s_Npop);\n',monitor_names{i},parameter_prefix,pop_name);
       else
-        fprintf(fid,'  %s = zeros(nsamp,%g);\n',monitor_names{i},model.parameters.([pop_name '_Npop']));
+        fprintf(fid,'    %s = zeros(nsamp,%g);\n',monitor_names{i},model.parameters.([pop_name '_Npop']));
       end
 %       parts=regexp(monitor_names{i},'_','split');
 %       if options.save_parameters_flag
@@ -1009,6 +1010,34 @@ end
 %% Benchmark toc
 if options.benchmark_flag
   fprintf(fid, 'fprintf(''Sim Time: %%g seconds\\n'', toc);');
+end
+
+%% nested functions
+if ~isempty(model.functions) && ~options.reduce_function_calls_flag && options.use_nested_functions_flag
+  fprintf(fid,'\n\n');
+  fprintf(fid,'%% ------------------------------------------------------------\n');
+  fprintf(fid,'%% Nested Functions:\n');
+  fprintf(fid,'%% ------------------------------------------------------------\n');
+  names=fieldnames(model.functions);
+  expressions=struct2cell(model.functions);
+  for i=1:length(names)
+    
+     thisAnonExpr = expressions{i};
+     
+%      splitInd = regexp(thisAnonExpr, '@\(.+\) ', 'end','once');
+     splitInd = find(thisAnonExpr == ')', 1, 'first');
+     
+     fnArgStr = thisAnonExpr(2:splitInd);
+     fnExpr = thisAnonExpr(splitInd+2:end);
+     
+     fnArgStr = strrep(fnArgStr, ',', ', '); % space after comma
+     
+%      if i == length(names)
+%        keyboard
+%      end
+    
+     fprintf(fid,'  function val = %s%s \n    val = %s;\n  end\n\n',names{i}, fnArgStr, fnExpr);
+  end
 end
 
 %% end solve function
