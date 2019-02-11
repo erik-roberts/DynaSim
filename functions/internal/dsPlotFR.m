@@ -9,7 +9,7 @@ function handles = dsPlotFR(data,varargin)
 %   - options: (same as dsCalcFR)
 %     'variable' : name of field containing data on which to calculate firing
 %                  rates (default: *_spikes or first variable in data.labels)
-%     'threshold': scalar threshold value for detecting events (default: 0)
+%     'threshold': scalar threshold value for detecting events (default: 1e-5)
 %     'bin_size' : size of temporal window over which to calculate rate [ms or
 %                  fraction of data set] (default: 5% of the data set)
 %     'bin_shift': how much to shift the bin before calculating rate again [ms
