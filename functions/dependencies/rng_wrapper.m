@@ -4,6 +4,8 @@ function out = rng_wrapper(in,varargin)
 % Author: Jason Sherfey, PhD <jssherfey@gmail.com>
 % Copyright (C) 2016 Jason Sherfey, Boston University, USA
 
+coder.extrinsic('rng_octave');
+
 if strcmp(reportUI,'matlab')
   if nargin == 0
     out = rng;
