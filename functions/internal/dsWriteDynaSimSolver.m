@@ -370,24 +370,33 @@ if options.one_solve_file_flag
     fprintf(fid,'flds = fields(rmfield(p,''tspan''));\n'); % remove tspan
     fprintf(fid,'for fld = flds''\n');
     fprintf(fid,'  fld = fld{1};\n');
-    fprintf(fid,'  if iscell(p.(fld)) && length(p.(fld)) > 1\n');
+    fprintf(fid,'  if iscell( p.(fld) ) && length( p.(fld) ) > 1\n');
     fprintf(fid,'    p.(fld) = p.(fld){simID};\n');
+    fprintf(fid,'  elseif ~isscalar( p.(fld) )\n');
+    fprintf(fid,'    p.(fld) = p.(fld)(simID);\n');
     fprintf(fid,'  end\n');
     fprintf(fid,'end\n\n');
   else %mex_flag
-    % slice scalar from vector params
-    for iParam = 1:nParamMods
-      fprintf(fid,'p.%s = pVecs.%s(simID);\n', mod_params{iParam}, mod_params{iParam});
+    params = fields( model.parameters );
+    
+    % loop over all params with conditional
+    for paramC = params(:)'
+      thisParam = paramC{1};
+      
+      fprintf(fid,'%% %s\n', thisParam);
+      fprintf(fid,'if isscalar( pVecs.%s )\n', thisParam);
+      fprintf(fid,'  p.%s = pVecs.%s;\n', thisParam, thisParam);
+      fprintf(fid,'else\n');
+      fprintf(fid,'  p.%s = pVecs.%s(simID);\n', thisParam, thisParam);
+      fprintf(fid,'end\n\n');
     end
 
-    % take scalar from scalar params
-    [~,sharedFlds] = intersect(fields(p), mod_params);
-    scalar_params = fields(p);
-    scalar_params(sharedFlds) = [];
-    nScalarParams = length(scalar_params);
-    for iParam = 1:nScalarParams
-      fprintf(fid,'p.%s = pVecs.%s;\n', scalar_params{iParam}, scalar_params{iParam});
+    flds = fields( dsCheckSolverOptions(options) );
+    for fldC = flds(:)'
+      thisFld = fldC{1};
+      fprintf(fid,'p.%s = pVecs.%s;\n', thisFld, thisFld);
     end
+    
   end
 end
 
