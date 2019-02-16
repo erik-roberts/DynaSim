@@ -568,7 +568,7 @@ for iFigset = 1:num_fig_sets
           % up graphics objects and convert them to doubles
         
         % position axes
-        haxes = tight_subplot2(num_rows, num_cols, [.01 .03], [.05 .03], [.03 .03], thisHandle);
+        haxes = tight_subplot2(num_rows, num_cols, [.01 .03], [.05 .03], [.05 .03], thisHandle);
     else
         if isempty(options.ax_handle)
           haxes = gca;
