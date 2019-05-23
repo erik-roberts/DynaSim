@@ -226,6 +226,9 @@ if options.save_data_flag || options.save_results_flag || options.parfor_flag
     stack = dbstack;
     firstFile = stack(end).file;
     if ~contains(firstFile, 'dsSimulate')
+      if strcmp(firstFile, 'run.m')
+        firstFile = stack(end-1).file;
+      end
       runFile = firstFile;
       runFilePath = which(firstFile);
     else
@@ -239,7 +242,8 @@ if options.save_data_flag || options.save_results_flag || options.parfor_flag
     
     if ~isempty(runFilePath)
       dsVprintf(options, 'Copying run file ''%s'' into ''study_dir/solve'': %s \n', runFile,solveDir);
-      copyPath = fullfile(solveDir, runFile);
+      [~,runFile] = fileparts(runFile);
+      copyPath = fullfile(solveDir, [runFile '_copy.m']);
       copyfile(runFilePath, copyPath);
     end
   end
