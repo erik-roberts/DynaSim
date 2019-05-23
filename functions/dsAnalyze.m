@@ -118,8 +118,11 @@ if ~nargin
 end
 
 %% check input type
-if (nargin > 1) && (iscell(varargin{1}) || all(isfunction(varargin{1})))
+if (nargin > 1) && (iscell(varargin{1}) || all(isfunction(varargin{1}))) || (nargin>1 && ~ischar(varargin{1}) && ischar(varargin{2}))
   funcIn = varargin{1};
+  
+  assert(all(isfunction(funcIn)));
+  
   varargin(1) = [];
 else
   funcIn = [];
@@ -243,7 +246,7 @@ if (options.parfor_flag && ~options.load_all_data_flag)
   options.parfor_flag = 0;
 end
 
-if (options.load_all_data_flag && ~options.parfor_flag)
+if (options.sims_per_job>1 && options.load_all_data_flag && ~options.parfor_flag)
   dsVprintf(options, 'Since load_all_data_flag==1, recommend setting parfor_flag==1 for speedup. \n');
 end
 
@@ -1235,9 +1238,15 @@ if isstruct(src) && isfield(src,'time') % data struct (single or array)
   studyinfo = [];
   
   options.load_all_data_flag = 1; % data has been loaded
-elseif ischar(src) %string input
+else
+  if isstruct(src) && isfield(src,'study_dir') % studyinfo struct
+    importPath = src.study_dir;
+  elseif ischar(src) %string input
+    importPath = src;
+  end
+  
   if options.load_all_data_flag % load data
-    [data,~,dataExistBoolVec] = dsImport(src, varargin{:});
+    [data,~,dataExistBoolVec] = dsImport(importPath, varargin{:});
     % if any data missing, will return struct with fewer entries, but gives
     % dataExistBoolVec showing which data did exist
     
@@ -1251,11 +1260,13 @@ elseif ischar(src) %string input
     studyinfo = dsCheckStudyinfo(src);
   end
 
-  % update study_dir
-  if exist(src, 'file') && contains(src, 'studyinfo') %studyinfo.mat
-    studyinfo.study_dir = fileparts2(src);
-  elseif isdir(src) % study_dir
-    studyinfo.study_dir = src;
+  if ischar(src)
+    % update study_dir
+    if exist(src, 'file') && contains(src, 'studyinfo') %studyinfo.mat
+      studyinfo.study_dir = fileparts2(src);
+    elseif isdir(src) % study_dir
+      studyinfo.study_dir = src;
+    end
   end
 end
 
