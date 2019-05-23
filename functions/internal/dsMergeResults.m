@@ -26,7 +26,7 @@ function dsMergeResults(src, varargin)
 %     'simIDs'        : numeric array of simIDs to import results from (default: [])
 %     'moveDir'       : rel or abs path to move original data to (default: 'results_split')
 %     'moveAllContents': whether to move entire results dir to 'moveDir' (faster), vs.
-%                        just the filtered results put in 'results/results_merged.mat' (slower) (default: 0)
+%                        just the filtered results put in 'results/results_merged.mat' (slower) (default: 1)
 %     'delete_original': whether to delete original results (default: 0)
 %     'verbose_flag' : whether to display informative messages/logs (default: 1)
 %
@@ -42,7 +42,7 @@ end
 
 options = dsCheckOptions(varargin,{...
   'moveDir', 'results_split', [],...
-  'moveAllContents',0,{0,1},...
+  'moveAllContents',1,{0,1},...
   'delete_original',0,{0,1},... % whether to delete original results (default: 0)
   'verbose_flag',1,{0,1},...
   },false);
