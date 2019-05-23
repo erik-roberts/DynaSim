@@ -289,11 +289,15 @@ options=dsCheckOptions(varargin,{...
   'matCompatibility_flag',1,{0,1},...  % whether to save mat files in compatible mode, vs to prioritize > 2GB VARs
   'save_data_flag',0,{0,1},...  % whether to save simulated data
   'save_results_flag',0,{0,1},...  % whether to save results from simulated data
+  'dataOnlyIncludeRE','',[],... % reg exp for which data fields to include when saving data
+  'dataExcludeRE','',[],... % reg exp for which data fields to exclude when saving data
   'project_dir',pwd,[],... % only used to build default study_dir in dsSetupStudy if study_dir not given
   'study_dir',[],[],... % study directory
   'prefix','study',[],... % prefix prepended to all output files
   'overwrite_flag',0,{0,1},... % whether to overwrite existing data
   'solve_file',[],[],... % m- or mex-file solving the system
+  'internal_function_name',[],[],... % name to use function in the solve file
+  'use_solve_filename_as_internal_function_name_flag',0,{0,1},... % whether to overwrite internal_function_name with solve_file name
   'sim_id',[],[],... % sim id in an existing study
   'studyinfo',[],[],...
   'email',[],[],... % email to send notification upon study completion
@@ -1193,7 +1197,7 @@ end % in_parfor_loop_flag
 
       % save single data set and update studyinfo
       if options.save_data_flag
-        dsExportData(tmpdata,'filename',data_file,'format','mat','matCompatibility_flag',options.matCompatibility_flag,'verbose_flag',options.verbose_flag);
+        dsExportData(tmpdata,'filename',data_file,'format','mat','matCompatibility_flag',options.matCompatibility_flag,'verbose_flag',options.verbose_flag, 'dataOnlyIncludeRE',options.dataOnlyIncludeRE, 'dataExcludeRE',options.dataExcludeRE);
         %studyinfo=dsUpdateStudy(studyinfo.study_dir,'process_id',sim_id,'status','finished','duration',duration,'solve_file',options.solve_file,'email',options.email,'verbose_flag',options.verbose_flag,'model',model,'simulator_options',options);
       end
       

@@ -19,6 +19,8 @@ function dsExportData(data,varargin)
 options=dsCheckOptions(varargin,{...
   'filename','data.mat',[],... % name of output data file
   'format','mat',[],... % mat. todo: csv, HDF
+  'dataOnlyIncludeRE','',[],... % reg exp for which data fields to include when saving data
+  'dataExcludeRE','',[],... % reg exp for which data fields to exclude when saving data
   'matCompatibility_flag',1,{0,1},... % whether to save mat files in compatible mode, or to prioritize > 2GB VARs
   'verbose_flag',0,{0,1},... % whether to print log info
   'result_flag',0,{0,1},... % whether exporting result instead of data
@@ -40,6 +42,11 @@ else
   clear data
 end
 
+
+% include and exclude
+if ~options.result_flag && (~isempty(options.dataOnlyIncludeRE) || ~isempty(options.dataExcludeRE))
+  data = dsFilterDataFields(data, options.dataOnlyIncludeRE, options.dataExcludeRE);
+end
 
 switch lower(options.format)
   case 'mat'
