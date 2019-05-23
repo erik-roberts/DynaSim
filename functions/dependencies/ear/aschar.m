@@ -10,7 +10,15 @@ function str = aschar(obj)
 %  > 1 el logical
 %  struct array
 
-if ischar(obj) && (sum( size(obj) ~= 1 ) <= 1)
+if isempty(obj)
+  if isnumeric(obj)
+    str = '[]';
+  elseif iscell(obj)
+    str = '{}';
+  end
+elseif isstruct(obj) && isempty( fieldnames(obj) )
+  str = 'struct()';
+elseif ischar(obj) && (sum( size(obj) ~= 1 ) <= 1)
   str = ['''' obj ''''];
 elseif isstring(obj)
   str = ['"' char(obj) '"'];
