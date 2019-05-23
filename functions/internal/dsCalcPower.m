@@ -328,6 +328,7 @@ for iVar = 1:length(options.variable)
 
     % set threshold for peak detection
     ht = prctile(tmpPxx(peakSel),thresh_prctile); % ht=prctile(log10(tmpPxx(sel)),thresh_prctile);
+    ht = ht-eps;
     if ~isnan(ht)
       % get index of peaks in range over threshold
       if strcmp(reportUI,'matlab')
@@ -399,11 +400,6 @@ for iVar = 1:length(options.variable)
     data.results{end+1} = [var '_Power_MUA' options.output_suffix];
   end
 
-  if options.exclude_data_flag
-    for l = 1:length(data.labels)
-      data = rmfield(data,data.labels{l});
-    end
-  end
 %   % alternate organization scheme:
 %   data.([var '_Pxx'])=Pxx;
 %   data.([var '_Pxx_PeakFreq'])=PeakFreq;
@@ -420,6 +416,12 @@ for iVar = 1:length(options.variable)
 %     data.results{end+1}=[var '_Pxx_mean_Pxx_PeakArea'];
 %   end
 
+end
+
+if options.exclude_data_flag
+  for l = 1:length(data.labels)
+    data = rmfield(data,data.labels{l});
+  end
 end
 
 %% auto_gen_test_data_flag argout
