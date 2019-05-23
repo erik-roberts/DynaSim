@@ -88,6 +88,8 @@ options=dsCheckOptions(varargin,{...
   'cluster_flag',0,{0,1},...
   'verbose_flag',1,{0,1},...
   'sparse_flag',0,{0,1},...
+  'internal_function_name','solve_ode',[],...
+  'use_solve_filename_as_internal_function_name_flag',0,{0,1},...
   'one_solve_file_flag',0,{0,1},... % use only 1 solve file of each type, but can't vary mechs yet
   'independent_solve_file_flag',0,{0,1},... % solve file makes DS data structure without dsSimulate call
   'benchmark_flag',0,{0,1},...
@@ -102,6 +104,11 @@ state_variables=model.state_variables;
 % 1.1a eliminate internal (anonymous) function calls from model equations
 if options.reduce_function_calls_flag==1
   model = dsPropagateFunctions(model, varargin{:});
+end
+
+% 1.1ai internal_function_name
+if options.use_solve_filename_as_internal_function_name_flag
+  [~, options.internal_function_name] = fileparts(options.filename);
 end
 
 % 1.1b prepare parameters
@@ -293,9 +300,9 @@ outfile=fopen(fid);
 
 if options.disk_flag==1
   if ~options.one_solve_file_flag
-    fprintf(fid,'function data_file=solve_ode\n');
+    fprintf(fid,'function data_file = %s\n', options.internal_function_name);
   else
-    fprintf(fid,'function data_file=solve_ode(simID)\n');
+    fprintf(fid,'function data_file = %s(simID)\n', options.internal_function_name);
     if options.mex_flag
       fprintf(fid, 'assert(isa(simID, ''double''));\n');
     end
@@ -330,9 +337,9 @@ if options.disk_flag==1
   fprintf(fid,'fprintf(fileID,''\\n'');\n');
 else %options.disk_flag==0
   if ~options.one_solve_file_flag
-    fprintf(fid,'function %s=solve_ode\n',output_string);
+    fprintf(fid,'function %s = %s\n',output_string, options.internal_function_name);
   else
-    fprintf(fid,'function %s=solve_ode(simID)\n',output_string);
+    fprintf(fid,'function %s = %s(simID)\n',output_string, options.internal_function_name);
     if options.mex_flag
       fprintf(fid, 'assert(isa(simID, ''double''));\n');
     end
@@ -372,7 +379,7 @@ if options.one_solve_file_flag
     fprintf(fid,'  fld = fld{1};\n');
     fprintf(fid,'  if iscell( p.(fld) ) && length( p.(fld) ) > 1\n');
     fprintf(fid,'    p.(fld) = p.(fld){simID};\n');
-    fprintf(fid,'  elseif ~isscalar( p.(fld) )\n');
+    fprintf(fid,'  elseif isnumeric( p.(fld) ) && ~isscalar( p.(fld) )\n');
     fprintf(fid,'    p.(fld) = p.(fld)(simID);\n');
     fprintf(fid,'  end\n');
     fprintf(fid,'end\n\n');
@@ -388,7 +395,7 @@ if options.one_solve_file_flag
       fprintf(fid,'  p.%s = pVecs.%s;\n', thisParam, thisParam);
       fprintf(fid,'else\n');
       fprintf(fid,'  p.%s = pVecs.%s(simID);\n', thisParam, thisParam);
-      fprintf(fid,'end\n\n');
+      fprintf(fid,'end\n');
     end
 
     flds = fields( dsCheckSolverOptions(options) );
@@ -1356,7 +1363,7 @@ function setup_randomseed(options,fid,rng_function,parameter_prefix)
       if ischar(options.random_seed)
         fprintf(fid,'%s(''%s'');\n',rng_function,options.random_seed);
       elseif isnumeric(options.random_seed)
-        fprintf(fid,'%s(%g);\n',rng_function,options.random_seed);
+        fprintf(fid,'%s(double(%g));\n',rng_function,options.random_seed);
       end
     end
   else
